@@ -1,11 +1,12 @@
 module.exports = function(grunt) {
 	grunt.initConfig({
 		test: {
-			fsm: 'test/backbone-fsm-node.js'	
+			node: 'test/node.js'	
 		},
 
 		qunit: {
-			fsm: 'test/backbone-fsm-browser.html'
+			amd: 'test/amd.html',
+			browser: 'test/browser.html'
 		},
 
 		watch: {
@@ -27,6 +28,6 @@ module.exports = function(grunt) {
 	});
 
 	grunt.loadNpmTasks('grunt-coffee');
-	grunt.registerTask('alltests', 'test qunit');
+	grunt.registerTask('testall', 'test qunit:browser');
 	grunt.registerTask('default', '');
 };

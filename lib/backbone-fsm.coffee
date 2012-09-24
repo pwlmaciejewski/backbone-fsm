@@ -1,10 +1,16 @@
 do ->
 	FSM = {}
 
-	# Root is global in node and window in browser
+	# Reference to the global object	
 	root = this
 	
+	# Node
 	if typeof module isnt 'undefined' and module.exports 
 		module.exports = FSM
+	# AMD
+	else if typeof define is 'function'
+		define ->
+			FSM
+	# Good ol'browser
 	else 
 		root.FSM = FSM
