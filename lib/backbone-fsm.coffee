@@ -1,3 +1,8 @@
+### 
+Backbone-FSM v0.0.0
+https://github.com/fragphace/backbone-fsm
+###
+
 do ->
 	FSM = {}
 

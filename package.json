@@ -15,7 +15,10 @@
     "FSM"
   ],
   "author": "fragphace",
-  "license": "BSD",
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/fragphace/backbone-fsm/raw/master/license"
+  },
   "devDependencies": {
     "grunt-coffee": "0.0.6",
     "backbone": "~0.9.2",
