@@ -108,9 +108,33 @@ module.exports =
 						from: 'unrendered'
 						to: 'ready'
 
-
 			test.throws (->
 				model = new Model()
 			), null, 'State not defined in transitions table cannot be a default state'
 
+			test.done()
+
+	state_change:
+		setUp: (cb) ->
+			@Model = Backbone.Model.extend
+				initialize: ->
+					FSM @
+
+				transitions:
+					trans1:
+						from: 'foo'
+						to: 'bar'
+			cb()
+
+		basic: (test) ->
+			model = new @Model()
+			model.state 'bar', ->
+				test.equal model.state(), 'bar', 'State should be changed'
+				test.done()
+
+		invalid: (test) ->
+			model = new @Model()
+			test.throws (->
+				model.state 'xxx'
+			), null, 'Invalid state should throw an error'
 			test.done()

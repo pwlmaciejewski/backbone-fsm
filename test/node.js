@@ -135,5 +135,37 @@ module.exports = {
       }), null, 'State not defined in transitions table cannot be a default state');
       return test.done();
     }
+  },
+  state_change: {
+    setUp: function(cb) {
+      this.Model = Backbone.Model.extend({
+        initialize: function() {
+          return FSM(this);
+        },
+        transitions: {
+          trans1: {
+            from: 'foo',
+            to: 'bar'
+          }
+        }
+      });
+      return cb();
+    },
+    basic: function(test) {
+      var model;
+      model = new this.Model();
+      return model.state('bar', function() {
+        test.equal(model.state(), 'bar', 'State should be changed');
+        return test.done();
+      });
+    },
+    invalid: function(test) {
+      var model;
+      model = new this.Model();
+      test.throws((function() {
+        return model.state('xxx');
+      }), null, 'Invalid state should throw an error');
+      return test.done();
+    }
   }
 };

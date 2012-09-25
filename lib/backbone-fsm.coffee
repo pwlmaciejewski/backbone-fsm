@@ -11,8 +11,16 @@ do ->
 
 		# Actual state
 		that._state = that.default_state
-		that.state = ->
-			that._state
+		that.state = (state, cb = ->) ->
+			# When no state, we need to return current state
+			if not state then return that._state
+
+			# Validate state
+			if state not in that._states then throw new Error "Invalid state '#{state}' "
+
+			# Change state procedure
+			that._state = state
+			cb()
 
 		# States
 		that._states = []
