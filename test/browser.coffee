@@ -1,2 +1,2 @@
 test "type", ->
-	equal typeof FSM, 'object', 'FSM should be an object'
+	equal typeof FSM, 'function', 'FSM should be a function'
