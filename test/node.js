@@ -6,59 +6,86 @@ Backbone = require('backbone');
 
 module.exports = {
   type: function(test) {
-    test.equal(typeof FSM, 'function', 'FSM should be an object');
+    test.equal(typeof FSM, 'object', 'FSM should be an object');
     return test.done();
   },
   version: function(test) {
-    test.equal(FSM.version, require('../package.json').version, 'FSM version should be the same as the one in package.json');
+    test.equal(FSM.version, require('../package.json').version, 'FSM.mixin version should be the same as the one in package.json');
     return test.done();
   },
-  extend: function(test) {
+  mixin: function(test) {
     var obj;
     obj = {
       foo: 'bar'
     };
-    FSM(obj);
-    test.equal(typeof obj.state, 'function', 'FSM should extend obj with new method "state"');
+    FSM.mixin(obj);
+    test.equal(typeof obj.state, 'function', 'FSM.mixin should extend obj with new method "state"');
+    test.equal(typeof obj.mixin, 'undefined', 'Mixin method should not be in obj');
     test.throws((function() {
       return FSM();
-    }), null, 'FSM without arguments should throw an error');
+    }), null, 'FSM.mixin without arguments should throw an error');
     return test.done();
   },
   stateless_model: function(test) {
     var Model, model;
     Model = Backbone.Model.extend({
       initialize: function() {
-        return FSM(this);
+        return FSM.mixin(this);
       }
     });
     model = new Model();
     test.equal(model.state(), void 0, 'State of stateless model should be undefined');
+    test.deepEqual(model.transitions, [], 'Transitions should be an empty array');
     return test.done();
   },
-  invalid_transition_definition: function(test) {
-    var Model;
-    Model = Backbone.Model.extend({
-      initialize: function() {
-        return FSM(this);
-      },
-      transitions: {
-        trans1: {
-          from: 'state1'
+  transitions: {
+    invalid: function(test) {
+      var Model;
+      Model = Backbone.Model.extend({
+        initialize: function() {
+          return FSM.mixin(this);
+        },
+        transitions: {
+          trans1: {
+            from: 'state1'
+          }
         }
-      }
-    });
-    test.throws((function() {
-      var model;
-      return model = new Model();
-    }), null, 'Invalid transition should throw an exception');
-    return test.done();
+      });
+      test.throws((function() {
+        var model;
+        return model = new Model();
+      }), null, 'Invalid transition should throw an exception');
+      return test.done();
+    },
+    ambiguous_transitions: function(test) {
+      var Model;
+      Model = Backbone.Model.extend({
+        initialize: function() {
+          return FSM.mixin(this);
+        },
+        transitions: {
+          trans1: {
+            from: 'foo',
+            to: 'bar'
+          },
+          trans2: {
+            from: 'foo',
+            to: 'bar'
+          }
+        }
+      });
+      test.throws((function() {
+        var model;
+        return model = new Model();
+      }), null, 'Ambiguous transition definition should throw an error');
+      return test.done();
+    }
   },
   states: function(test) {
     var Model, model;
     Model = Backbone.Model.extend({
       initialize: function() {
-        return FSM(this);
+        return FSM.mixin(this);
       },
       transitions: {
         rendering: {
@@ -80,7 +107,7 @@ module.exports = {
       var Model, model;
       Model = Backbone.Model.extend({
         initialize: function() {
-          return FSM(this);
+          return FSM.mixin(this);
         },
         transitions: {
           rendering: {
@@ -101,7 +128,7 @@ module.exports = {
       var Model, model;
       Model = Backbone.Model.extend({
         initialize: function() {
-          return FSM(this);
+          return FSM.mixin(this);
         },
         default_state: 'ready',
         transitions: {
@@ -112,14 +139,14 @@ module.exports = {
         }
       });
       model = new Model();
-      test.equal(model.state(), 'ready', 'FSM should respect default state set explicitly');
+      test.equal(model.state(), 'ready', 'FSM.mixin should respect default state set explicitly');
       return test.done();
     },
     invalid_state: function(test) {
       var Model;
       Model = Backbone.Model.extend({
         initialize: function() {
-          return FSM(this);
+          return FSM.mixin(this);
         },
         default_state: 'foo',
         transitions: {
@@ -140,7 +167,7 @@ module.exports = {
     setUp: function(cb) {
       this.Model = Backbone.Model.extend({
         initialize: function() {
-          return FSM(this);
+          return FSM.mixin(this);
         },
         transitions: {
           trans1: {
@@ -162,10 +189,41 @@ module.exports = {
     invalid: function(test) {
       var model;
       model = new this.Model();
-      test.throws((function() {
-        return model.state('xxx');
-      }), null, 'Invalid state should throw an error');
-      return test.done();
+      return model.state('bar', function() {
+        test.throws((function() {
+          return model.state('foo');
+        }), null, 'Undefined transition should throw an error');
+        return test.done();
+      });
+    },
+    callback: function(test) {
+      var Model, flag, model;
+      flag = false;
+      Model = this.Model.extend({
+        transition_trans1: function(cb) {
+          flag = true;
+          return cb();
+        }
+      });
+      model = new Model();
+      return model.state('bar', function() {
+        test.equal(flag, true, 'Foo_bar callback should be executed');
+        return test.done();
+      });
+    },
+    transition: function(test) {
+      var Model, model;
+      Model = this.Model.extend({
+        transition_trans1: function(cb) {
+          test.equal(this.transition, 'trans1', 'Transition property should indicate current transition name');
+          return cb();
+        }
+      });
+      model = new Model();
+      test.equal(model.transition, false, 'Transition property should	be false when no transition is being made');
+      return model.state('bar', function() {
+        return test.done();
+      });
     }
   }
 };

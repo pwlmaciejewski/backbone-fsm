@@ -3,52 +3,74 @@ Backbone = require 'backbone'
 
 module.exports =
 	type: (test) ->
-		test.equal typeof FSM, 'function', 'FSM should be an object'
+		test.equal typeof FSM, 'object', 'FSM should be an object'
 		test.done()
 
 	version: (test) ->
-		test.equal FSM.version, require('../package.json').version, 'FSM version should be the same as the one in package.json'
+		test.equal FSM.version, require('../package.json').version, 'FSM.mixin version should be the same as the one in package.json'
 		test.done()
 
-	extend: (test) ->
+	mixin: (test) ->
 		obj = 
 			foo: 'bar'
 
-		FSM obj
+		FSM.mixin obj
 
-		test.equal typeof obj.state, 'function', 'FSM should extend obj with new method "state"'
+		test.equal typeof obj.state, 'function', 'FSM.mixin should extend obj with new method "state"'
+		test.equal typeof obj.mixin, 'undefined', 'Mixin method should not be in obj'
 		test.throws (->
 			FSM()
-		), null, 'FSM without arguments should throw an error'
+		), null, 'FSM.mixin without arguments should throw an error'
 		test.done()	
 
 	stateless_model: (test) ->
 		Model = Backbone.Model.extend
 			initialize: ->
-				FSM @
+				FSM.mixin @
 
 		model = new Model()
 		test.equal model.state(), undefined, 'State of stateless model should be undefined'
+		test.deepEqual model.transitions, [], 'Transitions should be an empty array'
 		test.done()
 
-	invalid_transition_definition: (test) ->
-		Model = Backbone.Model.extend
-			initialize: ->
-				FSM @
+	transitions:
+		invalid: (test) ->
+			Model = Backbone.Model.extend
+				initialize: ->
+					FSM.mixin @
 
-			transitions:
-				trans1:
-					from: 'state1'
+				transitions:
+					trans1:
+						from: 'state1'
 
-		test.throws (->
-			model = new Model()
-		), null, 'Invalid transition should throw an exception'
-		test.done()
+			test.throws (->
+				model = new Model()
+			), null, 'Invalid transition should throw an exception'
+			test.done()
+
+		ambiguous_transitions: (test) ->
+			Model = Backbone.Model.extend
+				initialize: ->
+					FSM.mixin @
+
+				transitions:
+					trans1:
+						from: 'foo'
+						to: 'bar'
+					trans2: 
+						from: 'foo'
+						to: 'bar'
+
+			test.throws (->
+				model = new Model()
+			), null, 'Ambiguous transition definition should throw an error'
+			test.done()
+			
 
 	states: (test) ->
 		Model = Backbone.Model.extend
 			initialize: ->
-				FSM @
+				FSM.mixin @
 
 			transitions:
 				rendering: 
@@ -66,7 +88,7 @@ module.exports =
 		default: (test) ->
 			Model = Backbone.Model.extend
 				initialize: ->
-					FSM @
+					FSM.mixin @
 
 				transitions:
 					rendering: 
@@ -83,7 +105,7 @@ module.exports =
 		explicit: (test) ->
 			Model = Backbone.Model.extend
 				initialize: ->
-					FSM @
+					FSM.mixin @
 
 				default_state: 'ready'
 
@@ -93,13 +115,13 @@ module.exports =
 						to: 'ready'
 
 			model = new Model()
-			test.equal model.state(), 'ready', 'FSM should respect default state set explicitly'
+			test.equal model.state(), 'ready', 'FSM.mixin should respect default state set explicitly'
 			test.done()
 
 		invalid_state: (test) ->
 			Model = Backbone.Model.extend
 				initialize: ->
-					FSM @
+					FSM.mixin @
 				
 				default_state: 'foo'
 
@@ -118,7 +140,7 @@ module.exports =
 		setUp: (cb) ->
 			@Model = Backbone.Model.extend
 				initialize: ->
-					FSM @
+					FSM.mixin @
 
 				transitions:
 					trans1:
@@ -134,7 +156,32 @@ module.exports =
 
 		invalid: (test) ->
 			model = new @Model()
-			test.throws (->
-				model.state 'xxx'
-			), null, 'Invalid state should throw an error'
-			test.done()
+			model.state 'bar', ->
+				test.throws (->
+					model.state 'foo'
+				), null, 'Undefined transition should throw an error'
+				test.done();
+
+		callback: (test) ->
+			flag = false
+			Model = @Model.extend
+				transition_trans1: (cb) ->
+					flag = true
+					cb()
+
+			model = new Model()
+			model.state 'bar', ->
+				test.equal flag, true, 'Foo_bar callback should be executed'
+				test.done()
+
+		transition: (test) ->
+			Model = @Model.extend
+				transition_trans1: (cb) ->
+					test.equal @transition, 'trans1', 'Transition property should indicate current transition name'
+					cb()
+
+			model = new Model()
+			test.equal model.transition, false, 'Transition property should	be false when no transition is being made'
+
+			model.state 'bar', ->
+				test.done()
