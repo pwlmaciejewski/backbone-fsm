@@ -2,34 +2,57 @@
 (function() {
   var Backbone, FSM, tests;
   tests = {
-    type: function(test) {
-      test.equal(typeof FSM, 'object', 'FSM should be an object');
-      return test.done();
-    },
-    mixin: function(test) {
-      var obj;
-      obj = {
-        foo: 'bar'
-      };
-      FSM.mixin(obj);
-      test.equal(typeof obj.state, 'function', 'FSM.mixin should extend obj with new method "state"');
-      test.equal(typeof obj.mixin, 'undefined', 'Mixin method should not be in obj');
-      test.throws((function() {
-        return FSM();
-      }), null, 'FSM.mixin without arguments should throw an error');
-      return test.done();
-    },
-    stateless_model: function(test) {
-      var Model, model;
-      Model = Backbone.Model.extend({
-        initialize: function() {
-          return FSM.mixin(this);
-        }
-      });
-      model = new Model();
-      test.equal(model.state(), void 0, 'State of stateless model should be undefined');
-      test.deepEqual(model.transitions, [], 'Transitions should be an empty array');
-      return test.done();
+    basic: {
+      type: function(test) {
+        test.equal(typeof FSM, 'object', 'FSM should be an object');
+        return test.done();
+      },
+      mixin: function(test) {
+        var obj;
+        obj = {
+          foo: 'bar'
+        };
+        FSM.mixin(obj);
+        test.equal(typeof obj.state, 'function', 'FSM.mixin should extend obj with new method "state"');
+        test.equal(typeof obj.mixin, 'undefined', 'Mixin method should not be in obj');
+        test.throws((function() {
+          return FSM();
+        }), null, 'FSM.mixin without arguments should throw an error');
+        return test.done();
+      },
+      stateless_model: function(test) {
+        var Model, model;
+        Model = Backbone.Model.extend({
+          initialize: function() {
+            return FSM.mixin(this);
+          }
+        });
+        model = new Model();
+        test.equal(model.state(), void 0, 'State of stateless model should be undefined');
+        test.deepEqual(model.transitions, [], 'Transitions should be an empty array');
+        return test.done();
+      },
+      states: function(test) {
+        var Model, model;
+        Model = Backbone.Model.extend({
+          initialize: function() {
+            return FSM.mixin(this);
+          },
+          transitions: {
+            rendering: {
+              from: 'unrendered',
+              to: 'ready'
+            },
+            disabling: {
+              from: 'ready',
+              to: 'more than ready'
+            }
+          }
+        });
+        model = new Model();
+        test.deepEqual(model.states(), ['unrendered', 'ready', 'more than ready']);
+        return test.done();
+      }
     },
     transitions: {
       invalid: function(test) {
@@ -73,27 +96,6 @@
         }), null, 'Ambiguous transition definition should throw an error');
         return test.done();
       }
-    },
-    states: function(test) {
-      var Model, model;
-      Model = Backbone.Model.extend({
-        initialize: function() {
-          return FSM.mixin(this);
-        },
-        transitions: {
-          rendering: {
-            from: 'unrendered',
-            to: 'ready'
-          },
-          disabling: {
-            from: 'ready',
-            to: 'more than ready'
-          }
-        }
-      });
-      model = new Model();
-      test.deepEqual(model.states(), ['unrendered', 'ready', 'more than ready']);
-      return test.done();
     },
     default_state: {
       "default": function(test) {

@@ -1,31 +1,49 @@
 do ->
   tests =
-    type: (test) ->
-      test.equal typeof FSM, 'object', 'FSM should be an object'
-      test.done()
+    basic:
+      type: (test) ->
+        test.equal typeof FSM, 'object', 'FSM should be an object'
+        test.done()
 
-    mixin: (test) ->
-      obj = 
-        foo: 'bar'
+      mixin: (test) ->
+        obj = 
+          foo: 'bar'
 
-      FSM.mixin obj
+        FSM.mixin obj
 
-      test.equal typeof obj.state, 'function', 'FSM.mixin should extend obj with new method "state"'
-      test.equal typeof obj.mixin, 'undefined', 'Mixin method should not be in obj'
-      test.throws (->
-        FSM()
-      ), null, 'FSM.mixin without arguments should throw an error'
-      test.done() 
+        test.equal typeof obj.state, 'function', 'FSM.mixin should extend obj with new method "state"'
+        test.equal typeof obj.mixin, 'undefined', 'Mixin method should not be in obj'
+        test.throws (->
+          FSM()
+        ), null, 'FSM.mixin without arguments should throw an error'
+        test.done() 
 
-    stateless_model: (test) ->
-      Model = Backbone.Model.extend
-        initialize: ->
-          FSM.mixin @
+      stateless_model: (test) ->
+        Model = Backbone.Model.extend
+          initialize: ->
+            FSM.mixin @
 
-      model = new Model()
-      test.equal model.state(), undefined, 'State of stateless model should be undefined'
-      test.deepEqual model.transitions, [], 'Transitions should be an empty array'
-      test.done()
+        model = new Model()
+        test.equal model.state(), undefined, 'State of stateless model should be undefined'
+        test.deepEqual model.transitions, [], 'Transitions should be an empty array'
+        test.done()
+
+      states: (test) ->
+        Model = Backbone.Model.extend
+          initialize: ->
+            FSM.mixin @
+
+          transitions:
+            rendering: 
+              from: 'unrendered'
+              to: 'ready'
+            disabling:
+              from: 'ready'
+              to: 'more than ready'
+
+        model = new Model()
+        test.deepEqual model.states(), ['unrendered', 'ready', 'more than ready']
+        test.done()
 
     transitions:
       invalid: (test) ->
@@ -59,24 +77,6 @@ do ->
           model = new Model()
         ), null, 'Ambiguous transition definition should throw an error'
         test.done()
-        
-
-    states: (test) ->
-      Model = Backbone.Model.extend
-        initialize: ->
-          FSM.mixin @
-
-        transitions:
-          rendering: 
-            from: 'unrendered'
-            to: 'ready'
-          disabling:
-            from: 'ready'
-            to: 'more than ready'
-
-      model = new Model()
-      test.deepEqual model.states(), ['unrendered', 'ready', 'more than ready']
-      test.done()
 
     default_state:  
       default: (test) ->
