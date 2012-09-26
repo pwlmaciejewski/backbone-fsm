@@ -12,7 +12,9 @@
   <script src="lib/backbone.js"></script>
   <script src="tests.js"></script>
   <script>
-    nodeunit.run(tests);
+    nodeunit.run({
+      'Main suite:': tests
+    });
   </script>
 </body>
 </html>
