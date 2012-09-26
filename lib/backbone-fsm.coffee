@@ -93,12 +93,16 @@ do ->
 		# Set transition property
 		this.transition = name
 
+		# Transition:start event
+		if this.trigger? then this.trigger 'transition:start', name
+
 		# Change state procedure
 		transitionMethod = this['transition_' + name] ? (cb) -> cb()
 		transitionMethod.call this, =>
 			# Things back to normal
 			this._state = state
 			this.transition = false
+			if this.trigger? then this.trigger 'transition:stop', name
 			callback()
 		
 	# Convienience method. Returns 

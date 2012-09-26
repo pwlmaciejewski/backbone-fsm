@@ -4,11 +4,6 @@ module.exports = function(grunt) {
 			node: 'test/node.js'	
 		},
 
-		qunit: {
-			amd: 'test/amd.html',
-			browser: 'test/browser.html'
-		},
-
 		watch: {
 			coffee: {
 				files: '<config:coffee.all.src>',
@@ -28,6 +23,5 @@ module.exports = function(grunt) {
 	});
 
 	grunt.loadNpmTasks('grunt-coffee');
-	grunt.registerTask('testall', 'test qunit:browser');
-	grunt.registerTask('default', '');
+	grunt.registerTask('default', 'coffee:all test');
 };
