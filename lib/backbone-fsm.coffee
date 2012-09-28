@@ -69,7 +69,7 @@ do ->
 	# This is because FSM needs to work with 
 	# plain objects, not only with Backbone models/views
 	FSM._tryToTrigger = (args...) ->
-		if @trigger? then @trigger.apply @, args
+		if @trigger? then @trigger.apply(@, args)
 
 	FSM.getCurrentTransition = ->
 		return @_currentTransition
@@ -98,12 +98,12 @@ do ->
 		if @getCurrentTransition() isnt null
 			throw new Error "Cannot start new transtion when last one isn't finished"
 		transition = @setCurrentTransition name
-		if @_tryToTrigger 'transition:start', transition
+		@_tryToTrigger 'transition:start', transition
 
 	FSM.stopTransition = ->
 		transition = @getCurrentTransition()
 		@resetCurrentTransition()
-		if @_tryToTrigger 'transition:stop', transition
+		@_tryToTrigger 'transition:stop', transition
 
 	FSM.getState = ->
 		this._state
