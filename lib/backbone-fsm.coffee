@@ -17,22 +17,14 @@ do ->
 	else 
 		window.FSM = FSM
 
-	# Version
 	FSM.version = '0.0.0'
 
 	# Mixin function that takes one argument (an object)
 	# and extends it with FSM methods and properties
 	FSM.mixin = (that) ->
 		if not that then throw new Error 'Mixin should be called with one argument (object to extend)'
-
-		# Blacklist - fields which will be excluded from mixing
-		blacklist = ['mixin', 'initialize', 'version']
-
-		# Now our job is to augment that with FSM methods
-		# and initialize it (with FSM.initialize)
 		for name, val of FSM
-			if name not in blacklist then that[name] = val
-
+			if name not in ['mixin', 'initialize', 'version'] then that[name] = val
 		FSM.initialize.call that, that
 
 	# Instance initialization method.
@@ -42,7 +34,7 @@ do ->
 		# Some default properties
 		this._state = options.default_state
 		this._states = []
-		this.transition = false
+		this._currentTransition = null
 		if not options.transitions then this.transitions = []
 
 		# Get initial state
@@ -73,39 +65,54 @@ do ->
 		if this.default_state and this.default_state not in this._states
 			throw new Error "Invalid default transition #{that.default_state} - it's not defined in transitions table"
 
-	# Get/Set state method.
-	# Without arguments it returns current state.
-	# First argument is destination state (it must be valid).
-	# Second argument is an optional callback.
-	FSM.state = (state, callback = ->) ->
-		oldState = this._state
+	FSM.getCurrentTransition = ->
+		return @_currentTransition
+
+	FSM.setCurrentTransition = (name) ->
+		@_currentTransition = @getTransition name
+
+	FSM.resetCurrentTransition = ->
+		@_currentTransition = null
+
+	FSM.getTransition = (name) ->
+		if name not of @transitions
+			throw new Error "Invalid transition name '#{name}'"
+		{
+			name: name
+			from: @transitions[name].from
+			to: @transitions[name].to
+		}
+
+	FSM.getTransitionFromTo = (from, to) ->
+		res = @getTransition(name) for name, transition of @transitions \
+			when transition.from is from and transition.to is to
+		if res then res else throw new Error "Can't find transition from '#{from}' to '#{to}'"
+
+	FSM.startTransition = (name) ->
+		if @getCurrentTransition() isnt null
+			throw new Error "Cannot start new transtion when last one isn't finished"
+		transition = @setCurrentTransition name
+		if @trigger? then @trigger 'transition:start', transition
+
+	FSM.stopTransition = ->
+		transition = @getCurrentTransition()
+		@resetCurrentTransition()
+		if @trigger? then @trigger 'transition:stop', transition
+
+	FSM.getState = ->
+		this._state
+
+	FSM.setState = (state, callback = ->) ->
+		oldState = @_state
 		newState = state
+		transition = @getTransitionFromTo oldState, newState
 
-		# When no state, we need to return current state
-		if not state then return oldState
-
-		# Get transition
-		name = n for n, t of this.transitions \
-			when t.from is oldState and t.to is newState
-		if not name
-			throw new Error "Invalid transition from '#{oldState}' to '#{newState}'"
-
-		# Set transition property
-		this.transition = name
-
-		# Transition:start event
-		if this.trigger? then this.trigger 'transition:start', name
-
-		# Change state procedure
-		transitionMethod = this['transition_' + name] ? (cb) -> cb()
+		@startTransition transition.name 
+		transitionMethod = this['transition_' + transition.name] ? (cb) -> cb()
 		transitionMethod.call this, =>
-			# Things back to normal
-			this._state = state
-			this.transition = false
-			if this.trigger? then this.trigger 'transition:stop', name
+			@_state = newState
+			@stopTransition()
 			callback()
 		
-	# Convienience method. Returns 
-	# a copy of the internal states array
-	FSM.states = ->
+	FSM.getStates = ->
 		this._states.slice()
