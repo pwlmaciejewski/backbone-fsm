@@ -28,6 +28,25 @@ do ->
         test.deepEqual model.transitions, [], 'Transitions should be an empty array'
         test.done()
 
+      tryToTrigger:
+        backboneModel: (test) ->
+          Model = Backbone.Model.extend
+            initialize: ->
+              FSM.mixin @
+
+          model = new Model()
+          model.on 'foo', ->
+            test.ok true
+            test.done()
+          model._tryToTrigger 'foo'
+
+        plainObject: (test) ->
+          o = {}
+          FSM.mixin o
+          test.doesNotThrow ->
+            o._tryToTrigger 'foo'
+          test.done()
+
       getStates: (test) ->
         Model = Backbone.Model.extend
           initialize: ->

@@ -32,6 +32,31 @@
         test.deepEqual(model.transitions, [], 'Transitions should be an empty array');
         return test.done();
       },
+      tryToTrigger: {
+        backboneModel: function(test) {
+          var Model, model;
+          Model = Backbone.Model.extend({
+            initialize: function() {
+              return FSM.mixin(this);
+            }
+          });
+          model = new Model();
+          model.on('foo', function() {
+            test.ok(true);
+            return test.done();
+          });
+          return model._tryToTrigger('foo');
+        },
+        plainObject: function(test) {
+          var o;
+          o = {};
+          FSM.mixin(o);
+          test.doesNotThrow(function() {
+            return o._tryToTrigger('foo');
+          });
+          return test.done();
+        }
+      },
       getStates: function(test) {
         var Model, model;
         Model = Backbone.Model.extend({

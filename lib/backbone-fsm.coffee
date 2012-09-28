@@ -65,6 +65,12 @@ do ->
 		if this.default_state and this.default_state not in this._states
 			throw new Error "Invalid default transition #{that.default_state} - it's not defined in transitions table"
 
+	# Faccade for emiting events
+	# This is because FSM needs to work with 
+	# plain objects, not only with Backbone models/views
+	FSM._tryToTrigger = (args...) ->
+		if @trigger? then @trigger.apply @, args
+
 	FSM.getCurrentTransition = ->
 		return @_currentTransition
 
@@ -92,12 +98,12 @@ do ->
 		if @getCurrentTransition() isnt null
 			throw new Error "Cannot start new transtion when last one isn't finished"
 		transition = @setCurrentTransition name
-		if @trigger? then @trigger 'transition:start', transition
+		if @_tryToTrigger 'transition:start', transition
 
 	FSM.stopTransition = ->
 		transition = @getCurrentTransition()
 		@resetCurrentTransition()
-		if @trigger? then @trigger 'transition:stop', transition
+		if @_tryToTrigger 'transition:stop', transition
 
 	FSM.getState = ->
 		this._state
