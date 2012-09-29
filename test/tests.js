@@ -163,6 +163,27 @@
         this.model.resetCurrentTransition();
         test.equal(this.model.getCurrentTransition(), null);
         return test.done();
+      }
+    },
+    makeTransition: {
+      setUp: function(cb) {
+        this.Model = Backbone.Model.extend({
+          initialize: function() {
+            return FSM.mixin(this);
+          },
+          transitions: {
+            trans1: {
+              from: 'foo',
+              to: 'bar'
+            },
+            trans2: {
+              from: 'foo',
+              to: 'baz'
+            }
+          }
+        });
+        this.model = new this.Model();
+        return cb();
       },
       startTransition: function(test) {
         this.model.on('transition:start', function(transition) {
@@ -200,6 +221,20 @@
           return _this.model.startTransition('trans2');
         });
         return test.done();
+      },
+      makeTransition: function(test) {
+        var Model, model;
+        Model = this.Model.extend({
+          transition_trans1: function(cb) {
+            test.ok(true);
+            return cb();
+          }
+        });
+        model = new Model();
+        return model.makeTransition('trans1', function() {
+          test.expect(1);
+          return test.done();
+        });
       }
     },
     transition: {
@@ -346,21 +381,6 @@
           test.throws((function() {
             return model.setState('foo');
           }), null, 'Undefined transition should throw an error');
-          return test.done();
-        });
-      },
-      callback: function(test) {
-        var Model, flag, model;
-        flag = false;
-        Model = this.Model.extend({
-          transition_trans1: function(cb) {
-            flag = true;
-            return cb();
-          }
-        });
-        model = new Model();
-        return model.setState('bar', function() {
-          test.equal(flag, true, 'Foo_bar callback should be executed');
           return test.done();
         });
       }

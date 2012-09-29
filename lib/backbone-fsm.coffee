@@ -105,19 +105,19 @@ do ->
 		@resetCurrentTransition()
 		@_tryToTrigger 'transition:stop', transition
 
+	FSM.makeTransition = (name, callback = ->) ->
+		@startTransition name
+		fn = this['transition_' + name] ? (cb) -> cb()
+		fn.call @, =>
+			@stopTransition()
+			callback()
+
 	FSM.getState = ->
 		this._state
 
 	FSM.setState = (state, callback = ->) ->
-		oldState = @_state
-		newState = state
-		transition = @getTransitionFromTo oldState, newState
-
-		@startTransition transition.name 
-		transitionMethod = this['transition_' + transition.name] ? (cb) -> cb()
-		transitionMethod.call this, =>
-			@_state = newState
-			@stopTransition()
+		@makeTransition @getTransitionFromTo(@_state, state).name, =>
+			@_state = state
 			callback()
 		
 	FSM.getStates = ->

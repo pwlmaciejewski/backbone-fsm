@@ -134,6 +134,23 @@ do ->
         test.equal @model.getCurrentTransition(), null
         test.done()
 
+    makeTransition:
+      setUp: (cb) ->
+        @Model = Backbone.Model.extend
+          initialize: ->
+            FSM.mixin @
+
+          transitions:
+            trans1:
+              from: 'foo'
+              to: 'bar'
+            trans2:
+              from: 'foo'
+              to: 'baz'
+
+        @model = new @Model()
+        cb()
+
       startTransition: (test) ->
         @model.on 'transition:start', (transition) ->
           test.equal transition.name, 'trans1'
@@ -166,6 +183,17 @@ do ->
           @model.startTransition 'trans2'
         test.done()
 
+      makeTransition: (test) ->
+        Model = @Model.extend
+          transition_trans1: (cb) ->
+            test.ok(true)
+            cb()
+
+        model = new Model()
+        model.makeTransition 'trans1', ->
+          test.expect 1
+          test.done()
+        
     transition:
       setUp: (cb) ->
         @Model = Backbone.Model.extend
@@ -286,18 +314,6 @@ do ->
             model.setState 'foo'
           ), null, 'Undefined transition should throw an error'
           test.done();
-
-      callback: (test) ->
-        flag = false
-        Model = @Model.extend
-          transition_trans1: (cb) ->
-            flag = true
-            cb()
-
-        model = new Model()
-        model.setState 'bar', ->
-          test.equal flag, true, 'Foo_bar callback should be executed'
-          test.done()
 
   # Export tests
   if typeof module isnt 'undefined' and module.exports 
