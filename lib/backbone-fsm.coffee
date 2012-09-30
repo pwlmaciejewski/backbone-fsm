@@ -1,5 +1,5 @@
 ### 
-Backbone-FSM v0.0.0
+Backbone-FSM v0.0.1
 https://github.com/fragphace/backbone-fsm
 ###
 
@@ -13,7 +13,7 @@ do ->
 	else 
 		window.FSM = FSM
 
-	FSM.version = '0.0.0'
+	FSM.version = '0.0.1'
 
 	FSM.mixin = (that) ->
 		if not that then throw new Error 'Mixin should be called with one argument (object to extend)'
