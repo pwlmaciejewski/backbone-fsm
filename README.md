@@ -59,7 +59,7 @@ During transition:
 
 1. `transition:start` event is emited
 2. `onTransitionName` callback is called (if defined).
-3. `transitions:stop` event is emited
+3. `transition:stop` event is emited
 
 ## Example
 
