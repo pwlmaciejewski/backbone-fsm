@@ -63,7 +63,7 @@ During transition:
 
 ## Example
 
-See FSM in action!
+Backbone-FSM live example:
 [http://jsfiddle.net/fragphace/Zc6Gx/](http://jsfiddle.net/fragphace/Zc6Gx/)
 
 ## Tests [![Build Status](https://secure.travis-ci.org/fragphace/backbone-fsm.png?branch=master)](http://travis-ci.org/fragphace/backbone-fsm)
@@ -74,7 +74,7 @@ For server-side tests:
 npm test
 ```
 
-Browser tests are available in `test/browser.html`. 
+Browser tests can be found in `test/browser.html`. 
 Tested under:
 
 * IE 7+
