@@ -149,7 +149,7 @@ do ->
 
       makeTransition: (test) ->
         Model = @Model.extend
-          transition_trans1: (cb) ->
+          onTrans1: (cb) ->
             test.ok(true)
             cb()
 

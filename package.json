@@ -1,7 +1,7 @@
 {
   "name": "backbone-fsm",
   "version": "0.0.0",
-  "description": "Backbone finite state machine for browser and node.",
+  "description": "Backbone finite-state machine for browser and node.",
   "main": "lib/backbone-fsm.js",
   "scripts": {
     "test": "node_modules/grunt/bin/grunt test"
@@ -12,6 +12,7 @@
   },
   "keywords": [
     "backbone",
+    "Finite-state machine",
     "FSM"
   ],
   "author": "fragphace",

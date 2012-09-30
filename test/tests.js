@@ -178,7 +178,7 @@
       makeTransition: function(test) {
         var Model, model;
         Model = this.Model.extend({
-          transition_trans1: function(cb) {
+          onTrans1: function(cb) {
             test.ok(true);
             return cb();
           }

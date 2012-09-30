@@ -96,7 +96,7 @@ do ->
 
 	FSM.makeTransition = (name, callback = ->) ->
 		@startTransition name
-		fn = this['transition_' + name] ? (cb) -> cb()
+		fn = this['on' + name.charAt(0).toUpperCase() + name.slice(1)] ? (cb) -> cb()
 		fn.call @, =>
 			@stopTransition()
 			callback()
