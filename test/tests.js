@@ -13,23 +13,11 @@
           foo: 'bar'
         };
         FSM.mixin(obj);
-        test.equal(typeof obj.setState, 'function', 'FSM.mixin should extend obj with new method "state"');
+        test.equal(typeof obj.transitionTo, 'function', 'FSM.mixin should extend obj with new method "transitionTo"');
         test.equal(typeof obj.mixin, 'undefined', 'Mixin method should not be in obj');
         test.throws((function() {
           return FSM();
         }), null, 'FSM.mixin without arguments should throw an error');
-        return test.done();
-      },
-      stateless: function(test) {
-        var Model, model;
-        Model = Backbone.Model.extend({
-          initialize: function() {
-            return FSM.mixin(this);
-          }
-        });
-        model = new Model();
-        test.equal(model.getState(), void 0, 'State of stateless model should be undefined');
-        test.deepEqual(model.transitions, [], 'Transitions should be an empty array');
         return test.done();
       },
       tryToTrigger: {
@@ -56,69 +44,34 @@
           });
           return test.done();
         }
+      }
+    },
+    initialize: {
+      returnValue: function(test) {
+        var o;
+        o = Object.create(FSM).initialize();
+        test.ok(typeof o === 'object');
+        return test.done();
       },
-      getStates: function(test) {
+      innerState: function(test) {
+        var o;
+        o = Object.create(FSM);
+        o._resetAll();
+        test.equal(o._state, null);
+        test.deepEqual(o._states, []);
+        test.equal(o._currentTransition, null);
+        test.deepEqual(o._transitions, {});
+        return test.done();
+      },
+      stateless: function(test) {
         var Model, model;
         Model = Backbone.Model.extend({
           initialize: function() {
             return FSM.mixin(this);
-          },
-          transitions: {
-            rendering: {
-              from: 'unrendered',
-              to: 'ready'
-            },
-            disabling: {
-              from: 'ready',
-              to: 'more than ready'
-            }
           }
         });
         model = new Model();
-        test.deepEqual(model.getStates(), ['unrendered', 'ready', 'more than ready']);
-        return test.done();
-      }
-    },
-    transitionsTable: {
-      invalid: function(test) {
-        var Model;
-        Model = Backbone.Model.extend({
-          initialize: function() {
-            return FSM.mixin(this);
-          },
-          transitions: {
-            trans1: {
-              from: 'state1'
-            }
-          }
-        });
-        test.throws((function() {
-          var model;
-          return model = new Model();
-        }), null, 'Invalid transition should throw an exception');
-        return test.done();
-      },
-      ambiguousTransitions: function(test) {
-        var Model;
-        Model = Backbone.Model.extend({
-          initialize: function() {
-            return FSM.mixin(this);
-          },
-          transitions: {
-            trans1: {
-              from: 'foo',
-              to: 'bar'
-            },
-            trans2: {
-              from: 'foo',
-              to: 'bar'
-            }
-          }
-        });
-        test.throws((function() {
-          var model;
-          return model = new Model();
-        }), null, 'Ambiguous transition definition should throw an error');
+        test.equal(model.getCurrentState(), void 0, 'State of stateless model should be undefined');
         return test.done();
       }
     },
@@ -237,6 +190,65 @@
         });
       }
     },
+    currentState: {
+      setUp: function(cb) {
+        this.o = Object.create(FSM).initialize({
+          transitions: {
+            fooBar: {
+              from: 'foo',
+              to: 'bar'
+            }
+          }
+        });
+        return cb();
+      },
+      setCurrentState: function(test) {
+        this.o.setCurrentState('bar');
+        test.equal(this.o.getCurrentState(), 'bar');
+        return test.done();
+      },
+      invalidSetSurrentState: function(test) {
+        var o;
+        o = Object.create(FSM).initialize();
+        test.throws(function() {
+          return o.setCurrentState('foo');
+        });
+        return test.done();
+      },
+      resetCurrentState: function(test) {
+        this.o.resetCurrentState();
+        test.equal(this.o.getCurrentState(), null);
+        return test.done();
+      }
+    },
+    state: {
+      setUp: function(cb) {
+        this.o = Object.create(FSM).initialize({
+          transitions: {
+            fooBar: {
+              from: 'foo',
+              to: 'bar'
+            }
+          }
+        });
+        return cb();
+      },
+      getStates: function(test) {
+        test.deepEqual(this.o.getStates(), ['foo', 'bar']);
+        return test.done();
+      },
+      addState: function(test) {
+        this.o.addState('baz');
+        this.o.addState('foo');
+        test.deepEqual(this.o.getStates(), ['foo', 'bar', 'baz']);
+        return test.done();
+      },
+      addStates: function(test) {
+        this.o.addStates('baz', 'foo');
+        test.deepEqual(this.o.getStates(), ['foo', 'bar', 'baz']);
+        return test.done();
+      }
+    },
     transition: {
       setUp: function(cb) {
         this.Model = Backbone.Model.extend({
@@ -281,12 +293,64 @@
         return test.done();
       },
       getTransitionFromToInvalid: function(test) {
-        test.throws(function() {
-          return this.model.getTransitionFromTo('xxx', 'yyy');
+        test.equal(this.model.getTransitionFromTo('xxx', 'yyy'), null);
+        test.equal(this.model.getTransitionFromTo('bar'), null);
+        return test.done();
+      },
+      _addTransitionObject: function(test) {
+        var o;
+        o = Object.create(FSM).initialize();
+        o._addTransitionObject({
+          name: 'xxxYyy',
+          from: 'xxx',
+          to: 'yyy'
         });
-        test.throws(function() {
-          return this.model.getTransitionFromTo('bar');
+        test.equal(o.getTransition('xxxYyy').from, 'xxx');
+        test.deepEqual(o.getStates(), ['xxx', 'yyy']);
+        return test.done();
+      },
+      _createTransitionObject: function(test) {
+        var t;
+        t = FSM._createTransitionObject('fooBar', 'foo', 'bar');
+        test.deepEqual(t, {
+          name: 'fooBar',
+          from: 'foo',
+          to: 'bar'
         });
+        return test.done();
+      }
+    },
+    isValidTransition: {
+      valid: function(test) {
+        test.ok(!FSM.isValidTransition({
+          name: 'fooBar',
+          from: 'foo',
+          to: 'bar'
+        }));
+        return test.done();
+      },
+      invalid: function(test) {
+        test.equal("Transition 'fooBar' is not valid", FSM.isValidTransition({
+          name: 'fooBar',
+          from: 'foo'
+        }));
+        return test.done();
+      },
+      ambiguous: function(test) {
+        var o;
+        o = Object.create(FSM).initialize({
+          transitions: {
+            fooBar: {
+              from: 'foo',
+              to: 'bar'
+            }
+          }
+        });
+        test.equal("Ambiguous transition 'fooBar2'", o.isValidTransition({
+          name: 'fooBar2',
+          from: 'foo',
+          to: 'bar'
+        }));
         return test.done();
       }
     },
@@ -309,7 +373,7 @@
           }
         });
         model = new Model();
-        test.equal(model.getState(), 'unrendered', 'Default initial state should be the first source of the first transition');
+        test.equal(model.getCurrentState(), 'unrendered');
         return test.done();
       },
       explicit: function(test) {
@@ -318,7 +382,7 @@
           initialize: function() {
             return FSM.mixin(this);
           },
-          default_state: 'ready',
+          defaultState: 'ready',
           transitions: {
             rendering: {
               from: 'unrendered',
@@ -327,7 +391,7 @@
           }
         });
         model = new Model();
-        test.equal(model.getState(), 'ready', 'FSM.mixin should respect default state set explicitly');
+        test.equal(model.getCurrentState(), 'ready', 'FSM.mixin should respect default state set explicitly');
         return test.done();
       },
       invalidState: function(test) {
@@ -336,7 +400,7 @@
           initialize: function() {
             return FSM.mixin(this);
           },
-          default_state: 'foo',
+          defaultState: 'foo',
           transitions: {
             rendering: {
               from: 'unrendered',
@@ -344,14 +408,14 @@
             }
           }
         });
-        test.throws((function() {
+        test.throws(function() {
           var model;
           return model = new Model();
-        }), null, 'State not defined in transitions table cannot be a default state');
+        });
         return test.done();
       }
     },
-    stateChange: {
+    transitionTo: {
       setUp: function(cb) {
         this.Model = Backbone.Model.extend({
           initialize: function() {
@@ -369,17 +433,17 @@
       basic: function(test) {
         var model;
         model = new this.Model();
-        return model.setState('bar', function() {
-          test.equal(model.getState(), 'bar', 'State should be changed');
+        return model.transitionTo('bar', function() {
+          test.equal(model.getCurrentState(), 'bar', 'State should be changed');
           return test.done();
         });
       },
       invalid: function(test) {
         var model;
         model = new this.Model();
-        return model.setState('bar', function() {
+        return model.transitionTo('bar', function() {
           test.throws((function() {
-            return model.setState('foo');
+            return model.transitionTo('foo');
           }), null, 'Undefined transition should throw an error');
           return test.done();
         });

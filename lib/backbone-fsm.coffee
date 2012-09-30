@@ -5,69 +5,35 @@ https://github.com/fragphace/backbone-fsm
 
 do ->	
 	FSM = {}	
-
-	# Node
 	if typeof module isnt 'undefined' and module.exports 
 		module.exports = FSM
-	# AMD
 	else if typeof define is 'function'
 		define ->
 			FSM
-	# Good ol'browser
 	else 
 		window.FSM = FSM
 
 	FSM.version = '0.0.0'
 
-	# Mixin function that takes one argument (an object)
-	# and extends it with FSM methods and properties
 	FSM.mixin = (that) ->
 		if not that then throw new Error 'Mixin should be called with one argument (object to extend)'
 		for name, val of FSM
 			if name not in ['mixin', 'initialize', 'version'] then that[name] = val
 		FSM.initialize.call that, that
 
-	# Instance initialization method.
-	# Creates all neccessary properties and
-	# performs validation on input transitions table
-	FSM.initialize = (options) ->
-		# Some default properties
-		this._state = options.default_state
-		this._states = []
-		this._currentTransition = null
-		if not options.transitions then this.transitions = []
+	FSM._resetAll = ->
+		@_states = []
+		@_transitions = {}
+		@resetCurrentState()
+		@resetCurrentTransition()
 
-		# Get initial state
-		for name, transition of this.transitions
-			# Validate transition (it should always contain from and to)
-			if not transition.from? or not transition.to?
-				throw Error "Transition '#{name}' is not valid"  
-			
-			# Check transitions uniqueness
-			sameTransitions = 
-				t for n, t of this.transitions \
-				when t.from is transition.from \
-				and t.to is transition.to
-			if sameTransitions.length isnt 1 
-				throw new Error "Ambiguous transition '#{name}'"
-			
-			# Set default state
-			if not this._state then this._state = transition.from
-			
-			# Add state to _states array
-			if transition.from not in this._states
-				this._states.push transition.from
-			if transition.to not in this._states 
-				this._states.push transition.to
+	FSM.initialize = (options = {}) ->
+		@_resetAll()		
+		@addTransition(name, trans.from, trans.to) for name, trans of options.transitions
+		if @getStates().length then @setCurrentState @getStates()[0]
+		if options.defaultState? then @setCurrentState options.defaultState
+		@
 
-		# Default state validation - it should 
-		# be one of states defined in transitions table
-		if this.default_state and this.default_state not in this._states
-			throw new Error "Invalid default transition #{that.default_state} - it's not defined in transitions table"
-
-	# Faccade for emiting events
-	# This is because FSM needs to work with 
-	# plain objects, not only with Backbone models/views
 	FSM._tryToTrigger = (args...) ->
 		if @trigger? then @trigger.apply(@, args)
 
@@ -81,18 +47,41 @@ do ->
 		@_currentTransition = null
 
 	FSM.getTransition = (name) ->
-		if name not of @transitions
+		if name not of @_transitions
 			throw new Error "Invalid transition name '#{name}'"
-		{
-			name: name
-			from: @transitions[name].from
-			to: @transitions[name].to
-		}
+		@_createTransitionObject name, @_transitions[name].from, @_transitions[name].to
 
 	FSM.getTransitionFromTo = (from, to) ->
-		res = @getTransition(name) for name, transition of @transitions \
+		res = @getTransition(name) for name, transition of @_transitions \
 			when transition.from is from and transition.to is to
-		if res then res else throw new Error "Can't find transition from '#{from}' to '#{to}'"
+		if res then res else null
+
+	FSM.addTransition = (name, from, to) ->
+		t = @_createTransitionObject name, from, to
+		error = @isValidTransition t
+		if error then throw new Error error
+		@_addTransitionObject t
+
+	FSM._createTransitionObject = (name, from, to) ->
+		name: name
+		from: from
+		to: to
+
+	FSM._addTransitionObject = (t) ->
+		@_transitions[t.name] = 
+			from: t.from
+			to: t.to
+		@addStates t.from, t.to
+
+	FSM.isValidTransition = (t) ->
+		if not @_isValidTransitionObject(t) then return "Transition '#{t.name}' is not valid"
+		if @getTransitionFromTo(t.from, t.to) then return "Ambiguous transition '#{t.name}'"
+		false
+
+	FSM._isValidTransitionObject = (t) ->
+		if typeof t.name is 'string' and typeof t.from is 'string' and typeof t.to is 'string'
+			return true
+		false
 
 	FSM.startTransition = (name) ->
 		if @getCurrentTransition() isnt null
@@ -112,13 +101,28 @@ do ->
 			@stopTransition()
 			callback()
 
-	FSM.getState = ->
-		this._state
+	FSM.getCurrentState = ->
+		@_currentState
 
-	FSM.setState = (state, callback = ->) ->
-		@makeTransition @getTransitionFromTo(@_state, state).name, =>
-			@_state = state
+	FSM.setCurrentState = (state) ->
+		if state not in @_states
+			throw new Error "Invalid state '#{state}'"
+		@_currentState = state
+
+	FSM.resetCurrentState = ->
+		@_currentState = null
+
+	FSM.transitionTo = (state, callback = ->) ->
+		@makeTransition @getTransitionFromTo(@_currentState, state).name, =>
+			@_currentState = state
 			callback()
 		
+	FSM.addState = (state) ->
+		if state not in @_states then @_states.push state
+
+	FSM.addStates = (states...) ->
+		for state in states
+			@addState state
+
 	FSM.getStates = ->
 		this._states.slice()

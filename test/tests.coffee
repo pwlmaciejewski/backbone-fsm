@@ -11,22 +11,12 @@ do ->
 
         FSM.mixin obj
 
-        test.equal typeof obj.setState, 'function', 'FSM.mixin should extend obj with new method "state"'
+        test.equal typeof obj.transitionTo, 'function', 'FSM.mixin should extend obj with new method "transitionTo"'
         test.equal typeof obj.mixin, 'undefined', 'Mixin method should not be in obj'
         test.throws (->
           FSM()
         ), null, 'FSM.mixin without arguments should throw an error'
         test.done() 
-
-      stateless: (test) ->
-        Model = Backbone.Model.extend
-          initialize: ->
-            FSM.mixin @
-
-        model = new Model()
-        test.equal model.getState(), undefined, 'State of stateless model should be undefined'
-        test.deepEqual model.transitions, [], 'Transitions should be an empty array'
-        test.done()
 
       tryToTrigger:
         backboneModel: (test) ->
@@ -47,54 +37,28 @@ do ->
             o._tryToTrigger 'foo'
           test.done()
 
-      getStates: (test) ->
+    initialize: 
+      returnValue: (test) ->
+        o = Object.create(FSM).initialize()
+        test.ok typeof o is 'object'
+        test.done()
+
+      innerState: (test) ->
+        o = Object.create(FSM)
+        o._resetAll()
+        test.equal o._state, null
+        test.deepEqual o._states, []
+        test.equal o._currentTransition, null
+        test.deepEqual o._transitions, {}
+        test.done()
+
+      stateless: (test) ->
         Model = Backbone.Model.extend
           initialize: ->
             FSM.mixin @
-
-          transitions:
-            rendering: 
-              from: 'unrendered'
-              to: 'ready'
-            disabling:
-              from: 'ready'
-              to: 'more than ready'
 
         model = new Model()
-        test.deepEqual model.getStates(), ['unrendered', 'ready', 'more than ready']
-        test.done()
-
-    transitionsTable:
-      invalid: (test) ->
-        Model = Backbone.Model.extend
-          initialize: ->
-            FSM.mixin @
-
-          transitions:
-            trans1:
-              from: 'state1'
-
-        test.throws (->
-          model = new Model()
-        ), null, 'Invalid transition should throw an exception'
-        test.done()
-
-      ambiguousTransitions: (test) ->
-        Model = Backbone.Model.extend
-          initialize: ->
-            FSM.mixin @
-
-          transitions:
-            trans1:
-              from: 'foo'
-              to: 'bar'
-            trans2: 
-              from: 'foo'
-              to: 'bar'
-
-        test.throws (->
-          model = new Model()
-        ), null, 'Ambiguous transition definition should throw an error'
+        test.equal model.getCurrentState(), undefined, 'State of stateless model should be undefined'
         test.done()
 
     currentTransition:
@@ -193,7 +157,57 @@ do ->
         model.makeTransition 'trans1', ->
           test.expect 1
           test.done()
-        
+       
+    currentState:
+      setUp: (cb) ->
+        @o = Object.create(FSM).initialize
+          transitions: 
+            fooBar: 
+              from: 'foo'
+              to: 'bar'
+
+        cb()
+
+      setCurrentState: (test) ->        
+        @o.setCurrentState 'bar'
+        test.equal @o.getCurrentState(), 'bar'
+        test.done()
+
+      invalidSetSurrentState: (test) ->
+        o = Object.create(FSM).initialize()
+        test.throws ->
+          o.setCurrentState 'foo'
+        test.done()
+
+      resetCurrentState: (test) ->
+        @o.resetCurrentState()
+        test.equal @o.getCurrentState(), null
+        test.done()
+
+    state:
+      setUp: (cb) ->
+        @o = Object.create(FSM).initialize
+          transitions:
+            fooBar: 
+              from: 'foo'
+              to: 'bar'
+        cb()
+
+      getStates: (test) ->
+        test.deepEqual @o.getStates(), ['foo', 'bar']
+        test.done()
+
+      addState: (test) ->
+        @o.addState 'baz'
+        @o.addState 'foo'
+        test.deepEqual @o.getStates(), ['foo', 'bar', 'baz']
+        test.done()
+
+      addStates: (test) ->
+        @o.addStates 'baz', 'foo'
+        test.deepEqual @o.getStates(), ['foo', 'bar', 'baz']
+        test.done()
+
     transition:
       setUp: (cb) ->
         @Model = Backbone.Model.extend
@@ -231,10 +245,54 @@ do ->
         test.done()
 
       getTransitionFromToInvalid: (test) ->
-        test.throws ->
-          @model.getTransitionFromTo('xxx', 'yyy')
-        test.throws ->
-          @model.getTransitionFromTo('bar')
+        test.equal @model.getTransitionFromTo('xxx', 'yyy'), null
+        test.equal @model.getTransitionFromTo('bar'), null
+        test.done()
+
+      _addTransitionObject: (test) ->
+        o = Object.create(FSM).initialize()
+        o._addTransitionObject
+          name: 'xxxYyy'
+          from: 'xxx'
+          to: 'yyy'
+      
+        test.equal o.getTransition('xxxYyy').from, 'xxx'
+        test.deepEqual o.getStates(), ['xxx', 'yyy']
+        test.done();
+
+      _createTransitionObject: (test) ->
+        t = FSM._createTransitionObject 'fooBar', 'foo', 'bar'
+        test.deepEqual t, 
+          name: 'fooBar'
+          from: 'foo'
+          to: 'bar'
+        test.done()
+
+    isValidTransition: 
+      valid: (test) ->
+        test.ok not FSM.isValidTransition
+          name: 'fooBar'
+          from: 'foo'
+          to: 'bar'
+        test.done()
+
+      invalid: (test) ->
+        test.equal "Transition 'fooBar' is not valid", FSM.isValidTransition
+          name: 'fooBar'
+          from: 'foo'
+        test.done()
+
+      ambiguous: (test) ->
+        o = Object.create(FSM).initialize
+          transitions:
+            fooBar:
+              from: 'foo'
+              to: 'bar'
+
+        test.equal "Ambiguous transition 'fooBar2'", o.isValidTransition
+          name: 'fooBar2'
+          from: 'foo'
+          to: 'bar' 
         test.done()
 
     defaultState:  
@@ -252,7 +310,7 @@ do ->
               to: 'disabled'
 
         model = new Model()
-        test.equal model.getState(), 'unrendered', 'Default initial state should be the first source of the first transition'
+        test.equal model.getCurrentState(), 'unrendered'
         test.done()
 
       explicit: (test) ->
@@ -260,7 +318,7 @@ do ->
           initialize: ->
             FSM.mixin @
 
-          default_state: 'ready'
+          defaultState: 'ready'
 
           transitions:
             rendering:
@@ -268,7 +326,7 @@ do ->
               to: 'ready'
 
         model = new Model()
-        test.equal model.getState(), 'ready', 'FSM.mixin should respect default state set explicitly'
+        test.equal model.getCurrentState(), 'ready', 'FSM.mixin should respect default state set explicitly'
         test.done()
 
       invalidState: (test) ->
@@ -276,20 +334,19 @@ do ->
           initialize: ->
             FSM.mixin @
           
-          default_state: 'foo'
+          defaultState: 'foo'
 
           transitions:
             rendering:
               from: 'unrendered'
               to: 'ready'
 
-        test.throws (->
-          model = new Model()
-        ), null, 'State not defined in transitions table cannot be a default state'
+        test.throws ->
+          model = new Model()        
 
         test.done()
 
-    stateChange:
+    transitionTo:
       setUp: (cb) ->
         @Model = Backbone.Model.extend
           initialize: ->
@@ -303,15 +360,15 @@ do ->
 
       basic: (test) ->
         model = new @Model()
-        model.setState 'bar', ->
-          test.equal model.getState(), 'bar', 'State should be changed'
+        model.transitionTo 'bar', ->
+          test.equal model.getCurrentState(), 'bar', 'State should be changed'
           test.done()
 
       invalid: (test) ->
         model = new @Model()
-        model.setState 'bar', ->
+        model.transitionTo 'bar', ->
           test.throws (->
-            model.setState 'foo'
+            model.transitionTo 'foo'
           ), null, 'Undefined transition should throw an error'
           test.done();
 
