@@ -1,0 +1,23 @@
+{
+  "name": "backbone-fsm",
+  "version": "0.0.1",
+  "homepage": "https://github.com/fragphace/backbone-fsm.git",
+  "authors": [
+    "fragphace"
+  ],
+  "description": "Finite-State Machine for Backbone views and models.",
+  "main": "lib/backbone-fsm.js",
+  "keywords": [
+    "backbone",
+    "Finite-state machine",
+    "FSM"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
