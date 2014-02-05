@@ -1,4 +1,4 @@
-# Backbone-FSM
+# Backbone-FSM [![Build Status](https://secure.travis-ci.org/fragphace/backbone-fsm.png?branch=master)](http://travis-ci.org/fragphace/backbone-fsm)
 
 Finite-State Machine for Backbone views and models.
 **Browser** and **Node.js** compatible.
@@ -72,7 +72,7 @@ During transition:
 Backbone-FSM live example:
 [http://jsfiddle.net/fragphace/Zc6Gx/](http://jsfiddle.net/fragphace/Zc6Gx/)
 
-## Tests [![Build Status](https://secure.travis-ci.org/fragphace/backbone-fsm.png?branch=master)](http://travis-ci.org/fragphace/backbone-fsm)
+## Tests
 
 For server-side tests:
 
@@ -86,3 +86,8 @@ Tested under:
 * IE 7+
 * FF 15+
 * Chrome 22+
+
+## Development
+
+* Generate JS files - `make coffee`
+* Watch mode - `make watch`
