@@ -5,7 +5,13 @@ Finite-State Machine for Backbone views and models.
 
 ## Installation
 
-### Browser support
+### Bower
+
+```
+bower install backbone-fsm
+```
+
+### Old school
 
 Include `lib/backbone-fsm.js` into your page.
 
